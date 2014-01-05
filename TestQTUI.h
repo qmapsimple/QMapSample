@@ -16,7 +16,7 @@
 #include <QCheckBox>
 #include <QTableWidget>
 
-#include "QtMapControl.h"
+#include "Global/IMap2DInterface.h"
 
 
 class TestQTUI : public QMainWindow
@@ -83,7 +83,7 @@ private:
 
 	QTableWidget* fieldTableWidget;
 
-	QtMapControl * mapControl;
+	IMap2DInterface * mapControl;
 };
 
 #endif // TESTQTUI_H

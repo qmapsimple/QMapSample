@@ -18,8 +18,8 @@
 #ifndef IMAP2DINTERFACE_H
 #define IMAP2DINTERFACE_H
 
-#include <IPlugInterface.h>
-#include <RocMapDataDef.h>
+#include "Global/IPlugInterface.h"
+#include "Global/RocMapDataDef.h"
 
 class IMap2DInterface:public IPlugInterface
 {

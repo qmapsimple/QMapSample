@@ -3,6 +3,7 @@
 #include <QMessageBox>
 #include <QFont>
 
+#include "QtMapControl.h"
 
 
 TestQTUI::TestQTUI(QWidget *parent, Qt::WFlags flags)
@@ -40,6 +41,7 @@ void TestQTUI::addConnect()
 
 TestQTUI::~TestQTUI()
 {
+
 }
 
 void TestQTUI::setupUI( QMainWindow *mainWindow )
@@ -48,7 +50,8 @@ void TestQTUI::setupUI( QMainWindow *mainWindow )
 	mainWindow->resize(800,600);
 
 	mapControl = new QtMapControl(centralWidget);
-	mainWindow->setCentralWidget(mapControl);
+	QWidget* control = dynamic_cast<QWidget*>(mapControl);
+	mainWindow->setCentralWidget(control);
 	//setMainWidget(centralWidget);
 
 	menuBar = new QMenuBar(mainWindow);
@@ -188,27 +191,27 @@ void TestQTUI::setMainWidget( QWidget *centralWidget)
 
 void TestQTUI::zoomIn()
 {
-
+	mapControl->ZoomIn();
 }
 
 void TestQTUI::zoomOut()
 {
-
+	mapControl->ZoomOut();
 }
 
 void TestQTUI::viewEntire()
 {
-	
+	mapControl->Back();
 }
 
 void TestQTUI::select()
 {
-	
+	mapControl->Pointer();
 }
 
 void TestQTUI::pan()
 {
-
+	mapControl->Wander();
 }
 
 void TestQTUI::calcLength()
@@ -220,11 +223,6 @@ void TestQTUI::calcArea()
 {
 	
 }
-
-
-
-
-
 
 void TestQTUI::openMap( QString mapName )
 {
