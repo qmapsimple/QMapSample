@@ -1,12 +1,17 @@
 #pragma once
 
+#include "Base3D/UGWindowTypes3D.h"
+
 #include "QtMapControl.h"
+
 
 #include "MapEditor/UGMapEditorWnd.h"
 #include "Workspace/UGWorkspace.h"
 #include "Graphics/UGGraphicsManager.h"
 #include "Graphics/UGGraphics.h"
 #include "Graphics/UGImage.h"
+
+#include "Geometry/UGGeoPoint.h"
 
 
 #include "QtGui/QMessageBox.h"
@@ -16,7 +21,6 @@
 #include "stdlib.h"
 #include "time.h"
 
-#include "Geometry/UGGeoPoint.h"
 using namespace UGC;
 
 UGC::UGuint GetUGKeyflagMasks(QInputEvent * event)
@@ -1052,6 +1056,8 @@ void QtMapControl::ReleaseUGGraphics(UGGraphics* &pGraphics)
 
 void QtMapControl::PaintToQPainter()
 {
+	UGC::Window3D hWnd=this->winId();
+
 	QImage *pQImage = NULL;
 
 	pQImage = new QImage((UGC::UGbyte*)m_pMapImage->GetColors(),m_width,m_height,QImage::Format_ARGB32);
