@@ -4,20 +4,22 @@
 #include "Global/IMap2DInterface.h"
 
 #include <QtGui/QWidget>
+#include "Plane.h"
+#include <vector>
+#include <QTimer>
 
-
-#include "MapEditor/UGMapEditorWnd.h"
-#include "Graphics/UGGraphicsManager.h"
-#include "Graphics/UGGraphics.h"
-#include "Workspace/UGResources.h"
-
-
-using namespace UGC;
+#include "Stream/ugdefs.h"
 
 namespace UGC
 {
 	class UGGraphics;
+	class UGImage;
+	class UGWorkspace;
+	class UGMapEditorWnd;
+	class UGMap;
 }
+using namespace UGC;
+
 /**
  * 绘图控件类
  */
@@ -75,6 +77,8 @@ public:
 		 *	地图坐标转成屏幕坐标
 		 */
 		QPoint MapToPixel(const UGPoint2D &point2D);
+
+		UGWorkspace* GetWorkspace(); 
 
 public:
 	/************************************************************************/
@@ -690,6 +694,8 @@ public:
 	/////////////////////////////////////////////////////////////////////
 	virtual void Init();
 
+	public slots:
+		void showTime();
 private:	
 	UGMap& GetMap();
 
@@ -708,6 +714,12 @@ private:
 	 */
 	void Invalidate();
 
+	void InitPlans();
+
+	void DrawPlane(QImage *pQImage);
+
+
+
 	UGC::UGMapEditorWnd *m_mapWnd;   
 
 	UGC::UGWorkspace *m_workSpace;
@@ -723,6 +735,12 @@ private:
 	UGPoint2D defaultCenter;
 
 	BOOL invalidate;
+
+	std::vector<Plane> planes;
+	QImage imageAPlane;
+	QImage imageBPalne;
+	QTimer m_timer;
+	int count;
 };
 
 

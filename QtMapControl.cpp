@@ -2,10 +2,21 @@
 
 #include "QtMapControl.h"
 
+#include "MapEditor/UGMapEditorWnd.h"
+#include "Workspace/UGWorkspace.h"
+#include "Graphics/UGGraphicsManager.h"
+#include "Graphics/UGGraphics.h"
+#include "Graphics/UGImage.h"
+
+
 #include "QtGui/QMessageBox.h"
 #include <QPainter>
 #include <QWheelEvent>
+#include "stdio.h"
+#include "stdlib.h"
+#include "time.h"
 
+#include "Geometry/UGGeoPoint.h"
 using namespace UGC;
 
 UGC::UGuint GetUGKeyflagMasks(QInputEvent * event)
@@ -31,7 +42,17 @@ QtMapControl::QtMapControl( QWidget *parent /*= 0*/, Qt::WFlags flags /*= 0*/ )
 	m_pMapImage = NULL;
 	invalidate = FALSE;
 
+	imageAPlane = QImage("Resources/Plane.png");
+	imageBPalne = QImage("Resources/SelectPlane.png");
+	imageAPlane = imageAPlane.scaled(imageAPlane.width(),imageAPlane.height());
+	count = 0;
+
 	this->Init();
+	this->InitPlans();
+
+	m_timer.setInterval(1000);
+	m_timer.start();
+	connect(&m_timer, SIGNAL(timeout()), this, SLOT(showTime()));  
 }
 
 void QtMapControl::ViewEntire()
@@ -438,7 +459,7 @@ void QtMapControl::mouseReleaseEvent( QMouseEvent * event )
 		m_mapWnd->OnLButtonUp(pGraphics, nflag, location);
 		ReleaseUGGraphics(pGraphics);
 	}   
-	else if(event->button ()==Qt::RightButton)
+	else if(event->buttons ()==Qt::RightButton)
 	{	
 		UGGraphics* pGraphics= NULL;
 		CreateUGGrpaphics(pGraphics);
@@ -960,6 +981,8 @@ void QtMapControl::GetName( LPSTR sName )
 
 void QtMapControl::Init()
 {
+	
+
 	this->setMouseTracking(true);
 
 #ifdef _WIN32
@@ -1032,9 +1055,94 @@ void QtMapControl::PaintToQPainter()
 	QImage *pQImage = NULL;
 
 	pQImage = new QImage((UGC::UGbyte*)m_pMapImage->GetColors(),m_width,m_height,QImage::Format_ARGB32);
+
+	DrawPlane(pQImage);
+
 	QPainter paint;
 	paint.begin(this);
 	paint.drawImage(QRectF(0,0,m_width,m_height),*pQImage);
 	paint.end();
 	delete pQImage;
+}
+
+UGWorkspace* QtMapControl::GetWorkspace()
+{
+	return m_workSpace;
+}
+
+
+
+void QtMapControl::InitPlans()
+{
+	if (m_workSpace == NULL)
+	{
+		return;
+	}
+	UGDataSource* dataSource =  m_workSpace->GetDataSource(0);
+	if (dataSource == NULL)
+	{
+		return;
+	}
+	UGDatasetVector *dataSet = (UGDatasetVector *)dataSource->GetDataset("Sdzzd_P");
+	if (dataSet == NULL)
+	{
+		return;
+	}
+	UGQueryDef query;
+	UGRecordset *recordset = dataSet->Query(query);
+	if (recordset == NULL)
+	{
+		return;
+	}
+	std::vector<UGString> names ;
+	std::vector<UGPoint2D> locations ;
+	recordset->MoveFirst();
+	UGString fieldName = "NAME";
+	while (!recordset->IsEOF())
+	{
+
+		UGC::UGGeometry *pGeometry = NULL;
+		recordset->GetGeometry(pGeometry);
+		if (pGeometry != NULL)
+		{
+			locations.push_back(((UGGeoPoint*)pGeometry)->GetInnerPoint());
+			UGC::UGVariant midvalue;
+			recordset->GetFieldValue(fieldName,midvalue);
+			names.push_back(midvalue.ToString());
+		}
+
+		recordset->MoveNext();
+	}
+
+	int count = names.size();
+
+	int index = 0;
+	srand((unsigned)time(0));
+	while (planes.size() < 1000)
+	{
+		int i = rand()%count;
+		int j = rand()%count;
+
+		Plane plane(locations[i],locations[j],UGString::From(index),names[i],names[j]); 
+		plane.AddControl(this,&m_mapWnd->m_mapWnd);
+		planes.push_back(plane);
+		index++;
+	}
+}
+
+void QtMapControl::DrawPlane(QImage *pQImage)
+{
+	int planeCount = planes.size();
+	QPainter painter(pQImage);
+	for (int i = 0; i < planeCount;i++)
+	{ 
+		Plane plane = planes[i];
+		plane.drawPlane(painter,imageAPlane,&m_mapWnd->m_mapWnd,count);
+	}
+}
+
+void QtMapControl::showTime()
+{
+	count++;
+	update();
 }

@@ -9,7 +9,6 @@ int main(int argc, char *argv[])
 	QTextCodec::setCodecForTr(QTextCodec::codecForName("system"));
 	QApplication a(argc, argv);
 	TestQTUI w;
-	w.showMaximized();
 	w.show();
 	return a.exec();
 }

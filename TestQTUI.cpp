@@ -4,6 +4,7 @@
 #include <QFont>
 
 #include "QtMapControl.h"
+#include "QtSceneControl.h"
 
 
 TestQTUI::TestQTUI(QWidget *parent, Qt::WFlags flags)
@@ -49,10 +50,20 @@ void TestQTUI::setupUI( QMainWindow *mainWindow )
 	mainWindow->setWindowTitle(tr("QT ·¶Àý³ÌÐò"));
 	mainWindow->resize(800,600);
 
-	mapControl = new QtMapControl(centralWidget);
-	QWidget* control = dynamic_cast<QWidget*>(mapControl);
-	mainWindow->setCentralWidget(control);
-	//setMainWidget(centralWidget);
+	QTabWidget *tab = new QTabWidget();
+	tab->setTabPosition(QTabWidget::South);
+
+
+
+	mapControl = new QtMapControl();
+	QWidget* map2D = dynamic_cast<QWidget*>(mapControl);
+	tab->addTab(map2D,"Map2D");
+
+	QtSceneControl* map3D = new QtSceneControl();
+	map3D->SetWorkspace(dynamic_cast<QtMapControl*>(mapControl)->GetWorkspace());
+	tab->addTab(map3D,"Map3D");
+
+	mainWindow->setCentralWidget(tab);
 
 	menuBar = new QMenuBar(mainWindow);
 	mainWindow->setMenuBar(menuBar);
