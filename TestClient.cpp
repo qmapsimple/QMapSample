@@ -1,14 +1,7 @@
-#include "TestClient.h"
+
 #include <QString>
-#include "CUrlManager.h"
-#include "CIDQueryFeature.h"
-#include "CSQLQueryFeature.h"
-#include "CBufferQueryFeature.h"
-#include "CGeoPoint.h"
-#include "CSpatialQueryFeature.h"
-#include "CESpatialMode.h"
-#include "CSpatialAttrQueryFeature.h"
-#include "CBufferAttrQueryFeature.h"
+
+#include "TestClient.h"
 
 TestClient::TestClient(QWidget *parent, Qt::WFlags flags)
 	: QMainWindow(parent, flags)

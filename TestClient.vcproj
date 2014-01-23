@@ -169,6 +169,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\AssociatingManager.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\main.cpp"
 				>
 			</File>
@@ -199,63 +203,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\Global\CoordConvertDataStruct.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\IComCoorInterface.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\ICoorToolFunInterface.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\IInterfaceManager.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\IMap2DInterface.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\INetComInterface.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\IPlugBase.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\IPlugComUIBase.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\IPlugFinder.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\IPlugInterface.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\IPlugMapBase.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\IThreadBase.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\IThreadInterface.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\ITimeInterface.h"
-				>
-			</File>
-			<File
-				RelativePath=".\Global\IUIManageInterface.h"
+				RelativePath=".\AssociatingManager.h"
 				>
 			</File>
 			<File
@@ -339,10 +287,6 @@
 						Outputs="&quot;.\GeneratedFiles\$(ConfigurationName)\moc_$(InputName).cpp&quot;"
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\Global\RocMapDataDef.h"
-				>
 			</File>
 			<File
 				RelativePath=".\Global\Serializable.h"

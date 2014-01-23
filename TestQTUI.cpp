@@ -43,6 +43,14 @@ void TestQTUI::addConnect()
 TestQTUI::~TestQTUI()
 {
 
+	delete map3D;
+	map3D = NULL;
+
+	mapControl->Release();
+	delete mapControl;
+	mapControl = NULL;
+
+
 }
 
 void TestQTUI::setupUI( QMainWindow *mainWindow )
@@ -59,7 +67,7 @@ void TestQTUI::setupUI( QMainWindow *mainWindow )
 	QWidget* map2D = dynamic_cast<QWidget*>(mapControl);
 	tab->addTab(map2D,"Map2D");
 
-	QtSceneControl* map3D = new QtSceneControl();
+	map3D = new QtSceneControl();
 	map3D->SetWorkspace(dynamic_cast<QtMapControl*>(mapControl)->GetWorkspace());
 	tab->addTab(map3D,"Map3D");
 

@@ -7,13 +7,15 @@
 
 #include <QtGui/QWidget>
 
-
+#include "Stream/ugdefs.h"
 
 namespace UGC
 {
 	class UGWorkspace;
 	class UGSceneEditorWnd;
 	class UGRoot3D;
+	class UGModel;
+	class UGKmlContainer3D;
 }
 
 using namespace UGC;
@@ -48,9 +50,17 @@ public:
 
 	virtual void resizeEvent(QResizeEvent *event);
 
+	virtual void keyPressEvent(QKeyEvent *event);
+
 
 	public slots:
 		void render();
+
+	signals:
+		void renderTick();
+
+public:
+	UGSceneEditorWnd* GetUGSecneWnd();
 
 private:
 	void ReviseCursor();
@@ -62,6 +72,9 @@ private:
 	UGRoot3D* m_root3D;
 
 	QTimer* m_timer;
+
+	UGKmlContainer3D* m_pKmlContainer;
+	UGArray<UGPoint3D> m_arrPoint3D;
 };
 
 #endif

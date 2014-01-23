@@ -85,3 +85,8 @@ void PlaneInfoControl::SetPosition( QPoint pt )
 	int y = pt.y() + m_dpt.y();
 	this->setGeometry(x,y,120,60);
 }
+
+QPoint PlaneInfoControl::GetPosition()
+{
+	return m_position;
+}

@@ -99,3 +99,17 @@ void Plane::AddControl( QWidget*widget,UGC::UGMapWnd *m_mapWnd)
 		control->setGeometry(ptStart.x(),ptStart.y(),120,80);
 	}
 }
+
+void Plane::OffsetLabel( int xOffset,int yOffset )
+{
+	if(control != NULL)
+	{
+		QPoint pos = control->GetPosition();
+		int x = pos.x() + xOffset;
+		int y = pos.y() + yOffset;
+		QRect rect = control->geometry();
+		rect.moveTo(x,y);
+		control->setGeometry(rect);
+	}
+	
+}

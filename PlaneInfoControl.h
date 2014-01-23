@@ -39,6 +39,7 @@ public:
 	virtual void mouseMoveEvent ( QMouseEvent * event );
 
 	void SetPosition(QPoint pt);
+	QPoint GetPosition();
 
 private:
 	UGString m_from;

@@ -17,6 +17,8 @@ public:
 	void drawPlane(QPainter&paint,QImage& imageA,UGC::UGMapWnd *m_mapWnd,int count );
 
 	void AddControl(QWidget*widget,UGC::UGMapWnd *m_mapWnd);
+
+	void OffsetLabel(int xOffset,int yOffset);
 private:
 	UGPoint2D startPt;
 	UGPoint2D endPt;

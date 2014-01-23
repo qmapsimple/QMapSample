@@ -36,6 +36,13 @@ UGC::UGuint GetUGKeyflagMasks(QInputEvent * event)
 	}
 	return flag;
 }
+void UGSTDCALL TrackingCallBack(UGlong pWnd,UGdouble dx,UGdouble dy,
+									   UGint nButtonClicked, UGdouble dCurrentLength,
+									   UGdouble dCurrentAngle, UGdouble dAzimuth,
+									   UGdouble dTotalLength, UGdouble dTotalArea)
+{
+	double length = dTotalLength;
+}
 
 QtMapControl::QtMapControl( QWidget *parent /*= 0*/, Qt::WFlags flags /*= 0*/ )
 {
@@ -45,6 +52,8 @@ QtMapControl::QtMapControl( QWidget *parent /*= 0*/, Qt::WFlags flags /*= 0*/ )
 	m_mapWnd = NULL;
 	m_pMapImage = NULL;
 	invalidate = FALSE;
+	m_pQimage = NULL;
+	draging = false;
 
 	imageAPlane = QImage("Resources/Plane.png");
 	imageBPalne = QImage("Resources/SelectPlane.png");
@@ -71,23 +80,44 @@ QtMapControl::~QtMapControl()
 
 void QtMapControl::paintEvent( QPaintEvent * event )
 {
-
-	if (invalidate)
+	if (draging)
 	{
-		invalidate = FALSE;
-		SetWaitCursor();
-		UGGraphics* pGraphics= NULL;
-		CreateUGGrpaphics(pGraphics);
+		int xOffset = m_dragPoint.x() - m_pressPoint.x();
+		int yOffset = m_dragPoint.y() - m_pressPoint.y();
 
-		UGRect rcInvalid(0,0,m_width,m_height);
-		m_mapWnd->OnDraw(pGraphics,rcInvalid,rcInvalid,false,false);
+		QPainter painter(this);
+		painter.drawImage(xOffset,yOffset,*m_pQimage,0,0,m_width,m_height);		
+		painter.end();
 
-		ReleaseUGGraphics(pGraphics);
+		// 平移控件
+		int planeCount = planes.size();		
+		for (int i = 0; i < planeCount;i++)
+		{ 
+			Plane plane = planes[i];
+			plane.OffsetLabel(xOffset,yOffset);
+		}
+	} 
+	else
+	{
+		if (invalidate)
+		{
+			invalidate = FALSE;
+			SetWaitCursor();
+			UGGraphics* pGraphics= NULL;
+			CreateUGGrpaphics(pGraphics);
 
-		ReviseCursor();
+			UGRect rcInvalid(0,0,m_width,m_height);
+			m_mapWnd->OnDraw(pGraphics,rcInvalid,rcInvalid,false,false);
+
+			ReleaseUGGraphics(pGraphics);
+
+			ReviseCursor();
+		}
+
+		PaintToQPainter();
 	}
 
-	PaintToQPainter();
+	
 	
 }
 
@@ -437,6 +467,10 @@ void QtMapControl::mousePressEvent( QMouseEvent * event )
 		CreateUGGrpaphics(pGraphics);
 		m_mapWnd->OnLButtonDown(pGraphics, nflag, location);
 		ReleaseUGGraphics(pGraphics);
+
+		m_pressPoint.setX(event->x());
+		m_pressPoint.setY(event->y());
+		draging = (m_mapWnd->GetUserAction() == UGC::UGDrawParamaters::uaPan);
 	}   
 	else if(event->button ()==Qt::RightButton)
 	{	
@@ -451,8 +485,9 @@ void QtMapControl::mousePressEvent( QMouseEvent * event )
 
 void QtMapControl::mouseReleaseEvent( QMouseEvent * event )
 {
+	draging = false;
 	QWidget::mousePressEvent(event);
-	int nflag = 0; //GetUGKeyflagMasks(event);
+	int nflag = GetUGKeyflagMasks(event);
 	UGPoint location(event->x(),event->y());
 	
 
@@ -476,16 +511,33 @@ void QtMapControl::mouseReleaseEvent( QMouseEvent * event )
 void QtMapControl::mouseMoveEvent( QMouseEvent * event )
 {
 	Qt::MouseButtons button = event->buttons();
+	m_dragPoint.setX(event->x());
+	m_dragPoint.setY(event->y());
+
 	if(button == Qt::LeftButton)
 	{
 		UGGraphics* pGraphics = NULL;
 		CreateUGGrpaphics(pGraphics);
 		m_mapWnd->OnMouseMove(pGraphics,0,UGPoint(event->x(),event->y()));
-
-		PaintToQPainter();
-
 		ReleaseUGGraphics(pGraphics);
-		this->repaint();
+
+
+		// 直接绘制Image的内容
+		if(m_mapWnd->GetUserAction() == UGC::UGDrawParamaters::uaPan)
+		{
+
+			repaint();
+		}
+		
+	}
+	if(m_mapWnd->GetUserAction() == UGC::UGDrawParamaters::uaTrack)
+	{
+		UGGraphics* pGraphics = NULL;
+		CreateUGGrpaphics(pGraphics);
+		m_mapWnd->OnMouseMove(pGraphics,0,UGPoint(event->x(),event->y()));
+		ReleaseUGGraphics(pGraphics);
+		this->Invalidate();
+		repaint();
 	}
 	
 	ReviseCursor();
@@ -522,10 +574,10 @@ void QtMapControl::Wander()
 	m_mapWnd->SetUserAction(UGC::UGDrawParamaters::uaPan);
 }
 
-void QtMapControl::Wander( RocMap_CDPoint dPt )
+void QtMapControl::Wander( QPointF dPt )
 {
 	// 设置中心点
-	m_mapWnd->SetCenter(UGPoint2D(dPt.x,dPt.y));
+	m_mapWnd->SetCenter(UGPoint2D(dPt.x(),dPt.y()));
 }
 
 void QtMapControl::ZoomIn()
@@ -538,7 +590,7 @@ void QtMapControl::ZoomIn( float fZoomFactor )
 	m_mapWnd->Zoom(fZoomFactor);
 }
 
-void QtMapControl::ZoomIn( float fZoomFactor,RocMap_CDPoint dPt )
+void QtMapControl::ZoomIn( float fZoomFactor,QPointF dPt )
 {
 	this->ZoomIn(fZoomFactor);
 	this->Wander(dPt);
@@ -554,7 +606,7 @@ void QtMapControl::ZoomOut( float fZoomFactor )
 	m_mapWnd->Zoom(fZoomFactor);
 }
 
-void QtMapControl::ZoomOut( float fZoomFactor,RocMap_CDPoint dPt )
+void QtMapControl::ZoomOut( float fZoomFactor,QPointF dPt )
 {
 	this->ZoomOut(fZoomFactor);
 	this->Wander(dPt);
@@ -574,432 +626,53 @@ void QtMapControl::Pointer()
 	m_mapWnd->SetUserAction(UGDrawParamaters::uaPointModeSelect);
 }
 
-void QtMapControl::GetMapLayerOrder( vector<RocMap_LayerOrderInfo> &vLayerOrderInfo )
-{
-	//TODO: 空实现，后续提供
-}
 
-void QtMapControl::SetMapLayerOrder( vector<RocMap_LayerOrderInfo> vLayerOrderInfo )
-{
-	//TODO: 空实现，后续提供
-}
 
-void QtMapControl::SetMapLayerVisible( QString csLayerName,BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::CreateLayer( QString csLayerName )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetLayerVisible( QString csLayerName,BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::GetLayerOrder( vector<RocMap_UserLayerInfo> &vLayerInfo )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetLayerOrder( vector<RocMap_UserLayerInfo> vLayerInfo )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ShowMapScaleBar( BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawLine( const char* strID,vector<RocMap_CDPoint> vdPt )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetTextStyle( QFont font /*= QFont("Times", 10, QFont::Bold ) */,QColor color /*= QColor(255,0,0)*/,QColor bgcolor /*= QColor(-1,-1,-1)*/, float bgalpha /*= 0.5*/,QColor bgoutlinecolor /*= QColor(-1,-1,-1)*/ )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetTextStyle( const char* strID,QFont font /*= QFont("Times", 10, QFont::Bold ) */,QColor color /*= QColor(255,0,0)*/, QColor bgcolor /*= QColor(-1,-1,-1)*/,float bgalpha /*= 0.5*/,QColor bgoutlinecolor /*= QColor(-1,-1,-1)*/ )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DragText( BOOL bDrag )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawText( const char* strID,const char* strContent,RocMap_CDPoint dPt )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetPointStyle( int nSize,QColor color, unsigned char cStyle )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetPointStyle( const char* strID,int nSize,QColor color, unsigned char cStyle )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawPoint( const char* strID,RocMap_CDPoint dPt )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ShowPointLabel( BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ShowPointLabel( const char* strID,BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawPointLabel( const char* strID,QString sContent )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DragPointLabel( BOOL bDrag )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetLineStyle( int nWidth,QColor color,unsigned char cStyle )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetLineStyle( const char* strID,int nWidth,QColor color,unsigned char cStyle )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ShowLineLabel( BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ShowLineLabel( const char* strID,BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawLineLabel( const char* strID,QString sContent )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DragLineLabel( BOOL bDrag )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetRegionStyle( int outlinewidth,QColor outlinecolor,QColor fillcolor,float alpha )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetRegionStyle( const char* strID,int outlinewidth,QColor outlinecolor,QColor fillcolor,float alpha )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawRegion( const char* strID,vector<RocMap_CDPoint> vdPt )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ShowRegionLabel( BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ShowRegionLabel( const char* strID,BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawRegionLabel( const char* strID,QString sContent )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DragRegionLabel( BOOL bDrag )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetSectorStyle( int outlinewidth,QColor outlinecolor,QColor fillcolor,float alpha )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetSectorStyle( const char* strID,int outlinewidth,QColor outlinecolor,QColor fillcolor,float alpha )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawSector( const char* strID,RocMap_CDPoint dPt,float fRadius,float fBeginAngle,float fAngleScope )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawSectorbyXY( const char* strID,RocMap_CDPoint dPt,float fRadius,float fBeginAngle,float fAngleScope )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ShowSectorLabel( BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ShowSectorLabel( const char* strID,BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawSectorLabel( const char* strID,QString sContent )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DragSectorLabel( BOOL bDrag )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetEllipseStyle( int outlinewidth,QColor outlinecolor,QColor fillcolor,float alpha )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetEllipseStyle( const char* strID,int outlinewidth,QColor outlinecolor,QColor fillcolor,float alpha )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawEllipse( const char* strID,RocMap_CDPoint dCenterPt,float fLRadius,float fSRadius,float fAngle )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ShowEllipseLabel( BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ShowEllipseLabel( const char* strID,BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawEllipseLabel( const char* strID,QString sContent )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DragEllipseLabel( BOOL bDrag )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DelObjectbyID( const char* strID, unsigned char cSort )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DelObjectbySort( unsigned char cSort )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::ClearAll()
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawMiliMark( const char* strID,const char* strName,int jbcode,RocMap_CDPoint dPt,QColor color )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetMiliMarkScale( float fScale )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetMiliMarkScale( const char* strID,float fScale )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetMiliMarkHJShow( BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetMiliMarkHJShow( const char* strID,BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetHJLength( int nLength )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetHJLength( const char* strID,int nLength )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetMiliMarkEdit( BOOL bEdit )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetMiliMarkShow( BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetMiliMarkShow( const char* strID,BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetMiliMarkLabelStyle( const char* strID,QFont font /*= QFont("Times", 10, QFont::Bold ) */,QColor color /*= QColor(255,0,0)*/,QColor bgcolor /*= QColor(-1,-1,-1)*/, QColor bgoutlinecolor /*= QColor(-1,-1,-1)*/,float bgalpha /*= 0.5*/ )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetMiliMarkLabelShow( BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetMiliMarkLabelShow( const char* strID,BOOL bShow )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::DrawMiliMarkLabel( const char* strID,QString sContent )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::SetMiliMarkAngle( const char* strID,float fAngle )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::GetMiliMarkInfo( vector<RocMap_JBAttr> &vJBAttr )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-float QtMapControl::GetMapScale()
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-int QtMapControl::GetLodLevel()
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::GetDistance()
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-float QtMapControl::GetDistance( vector<RocMap_CDPoint> vdPt )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::GetArea()
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-float QtMapControl::GetArea( vector<RocMap_CDPoint> vdPt )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::GetAngle()
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-float QtMapControl::GetAngle( RocMap_CDPoint dPt0,RocMap_CDPoint dPt1 )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-float QtMapControl::GetHeight( RocMap_CDPoint dPt )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
-
-void QtMapControl::XYtoLB( QPoint pt,RocMap_CDPoint& dPt )
+void QtMapControl::XYtoLB( QPoint pt,QPointF& dPt )
 {
 	UGPoint2D mapPoint = this->PixelToMap(pt);
-	dPt.x = mapPoint.x;
-	dPt.y = mapPoint.y;
+	dPt.setX(mapPoint.x);
+	dPt.setY(mapPoint.y);
 }
 
-QPoint QtMapControl::LBtoXY( RocMap_CDPoint dPt )
+QPoint QtMapControl::LBtoXY( QPointF dPt )
 {
-	return this->MapToPixel(UGPoint2D(dPt.x,dPt.y));
+	return this->MapToPixel(UGPoint2D(dPt.x(),dPt.y()));
 }
 
-BOOL QtMapControl::GetGeoPoint( RocMap_CDPoint dSrcPt,float fAngle,float fDist,RocMap_CDPoint& dObjPt )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
+
 
 void QtMapControl::Release()
 {
+	
 	delete m_pMapImage;
+	m_pMapImage = NULL;
+
 	delete m_mapWnd;
+	m_mapWnd = NULL;
 	delete m_workSpace;
+	m_workSpace = NULL;
 }
 
-void QtMapControl::GetName( LPSTR sName )
-{
-	throw std::exception("The method or operation is not implemented.");
-}
 
 void QtMapControl::Init()
 {
-	
-
 	this->setMouseTracking(true);
 
-#ifdef _WIN32
-	UGGraphicsManager::SetCurGraphicsType(UGGraphics::GT_Windows);	
-#else
 	UGGraphicsManager::SetCurGraphicsType(UGGraphics::GT_MEM);
-#endif
+
 
 	m_mapWnd = new UGMapEditorWnd();
 
 	//这里UGC也把UGMapWnd初始化了，所以不用再初始化UGMapWnd
 	m_mapWnd->Initialize();
-	m_mapWnd->SetUserAction(UGDrawParamaters::uaPan);
+	//m_mapWnd->SetUserAction(UGDrawParamaters::uaPan);
+
+	m_mapWnd->SetUserAction(UGDrawParamaters::uaTrack,UGC::UGEditType::ET_PolyLine);
+
+	m_mapWnd->SetNeedSendEvent(true);
+	m_mapWnd->GetEditToolPack()->SetNeedSendEditEvent(true);
+	m_mapWnd->SetTrackingFunc(TrackingCallBack,(UGlong)this);
 
 	m_workSpace = new UGWorkspace;
 
@@ -1007,6 +680,12 @@ void QtMapControl::Init()
 	UGString path = "../Data/";
 
 	UGString strFileName = path + "China400_6.0.smwu";
+
+	
+
+// 	UGString path = "../QtMap_Data/";
+// 	
+// 	UGString strFileName = path + "China400_6.0.sxwu";
 
 	UGbool isOpen = m_workSpace->Open(strFileName);
 
@@ -1058,17 +737,43 @@ void QtMapControl::PaintToQPainter()
 {
 	UGC::Window3D hWnd=this->winId();
 
-	QImage *pQImage = NULL;
+	// 构建目标位图
+	UGGraphics* pDesGraphics = UGC::UGGraphicsManager::NewGraphics();
+	pDesGraphics->CreateCompatibleGraphics(NULL);
+	UGImage* desImage = UGGraphicsManager::NewImage();
+	desImage->CreateCompatibleImage(NULL,m_width,m_height);
+	UGImage* pOldDesImage = pDesGraphics->SelectImage(desImage);
 
-	pQImage = new QImage((UGC::UGbyte*)m_pMapImage->GetColors(),m_width,m_height,QImage::Format_ARGB32);
+	// 构建原图位图
+	UGGraphics* pSrcGraphics = UGC::UGGraphicsManager::NewGraphics();
+	pSrcGraphics->CreateCompatibleGraphics(NULL);
+	UGImage* pOldSrcImage = pSrcGraphics->SelectImage(m_pMapImage);
 
-	DrawPlane(pQImage);
+	pDesGraphics->DrawImage(0,0,m_width,m_height,pSrcGraphics,0,0,UGGraphics::IMAGE_SRCCOPY);
+	
+	pDesGraphics->SelectImage(pOldDesImage);
+	pSrcGraphics->SelectImage(pOldSrcImage);
+
+	delete pDesGraphics;
+	delete pSrcGraphics;
+
+	if(m_pQimage != NULL)
+	{
+		delete m_pQimage;
+		m_pQimage = NULL;
+	}
+
+	m_pQimage = new QImage((UGC::UGbyte*)desImage->GetColors(),m_width,m_height,QImage::Format_ARGB32);
+
+	DrawPlane(m_pQimage);
 
 	QPainter paint;
 	paint.begin(this);
-	paint.drawImage(QRectF(0,0,m_width,m_height),*pQImage);
+	paint.drawImage(QRectF(0,0,m_width,m_height),*m_pQimage);
 	paint.end();
-	delete pQImage;
+	
+
+	//delete desImage;
 }
 
 UGWorkspace* QtMapControl::GetWorkspace()
@@ -1149,6 +854,26 @@ void QtMapControl::DrawPlane(QImage *pQImage)
 
 void QtMapControl::showTime()
 {
-	count++;
-	update();
+	if(!draging)
+	{
+		count++;
+		update();
+	}
 }
+
+void QtMapControl::GetDistance()
+{
+	m_mapWnd->m_mapWnd.SetUserAction(UGDrawParamaters::uaTrack,UGC::UGEditType::ET_PolyLine);
+}
+
+float QtMapControl::GetMapScale()
+{
+	return m_mapWnd->m_mapWnd.m_Map.GetScale();
+}
+
+UGMapEditorWnd* QtMapControl::GetUGMapWnd()
+{
+	return m_mapWnd;
+}
+
+
