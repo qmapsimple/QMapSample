@@ -1,11 +1,22 @@
 #ifndef PLANE_H_
 #define PLANE_H_
 
-#include "Stream/ugdefs.h"
-#include "MapEditor/UGMapEditorWnd.h"
-using namespace UGC;
+#include <QRect>
 #include <QPainter>
-#include "PlaneInfoControl.h"
+#include <QImage>
+
+#include "Stream/ugdefs.h"
+
+
+namespace UGC
+{
+    class UGMapWnd;
+}
+
+using namespace UGC;
+
+class PlaneInfoControl;
+
 class Plane
 {
 public:

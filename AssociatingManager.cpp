@@ -1,13 +1,16 @@
 #include "AssociatingManager.h"
 #include "QtMapControl.h"
 #include "QtSceneControl.h"
-#include "MapWindow/UGMapWnd.h"
+#include "MapEditor/UGMapEditorWnd.h"
+#include "SceneEditor/UGSceneEditorWnd.h"
+#include "Scene/UGScene3D.h"
 
-
+const double EarthRadius = 6378137;
 
 void UGSTDCALL MapDrawnCallBack(UGlong pWnd,UGGraphics* pGraphics)
 {
-	
+	AssociatingManager* pManager = (AssociatingManager*)pWnd;
+	pManager->UpdateSceneView();
 }
 
 AssociatingManager::AssociatingManager( QtMapControl* pMapControl,QtSceneControl* pSceneControl )
@@ -88,8 +91,8 @@ void AssociatingManager::Attach()
 	if(mapWnd == NULL || sceneWnd == NULL)
 		return;
 
-	mapWnd->m_mapWnd.SetAfterMapDrawFunc(MapDrawnCallBack,(UGlong)m_pSceneControl);
-
+	mapWnd->m_mapWnd.SetAfterMapDrawFunc(MapDrawnCallBack,(UGlong)this);
+	m_pSceneControl->connect(m_pSceneControl,SIGNAL(renderTick()),this,SLOT(renderTick()));
 
 
 	m_isAttached = true;
@@ -102,7 +105,79 @@ bool AssociatingManager::IsAttached()
 
 void AssociatingManager::UnAttach()
 {
+	// 事件注册
+	UGMapEditorWnd* mapWnd = m_pMapControl->GetUGMapWnd();
+	UGSceneEditorWnd* sceneWnd = m_pSceneControl->GetUGSecneWnd();
+
+	// 有一个为空则返回
+	if(mapWnd == NULL || sceneWnd == NULL)
+		return;
+
 	// 反注册
+	mapWnd->m_mapWnd.SetAfterMapDrawFunc(NULL,(UGlong)NULL);
+	m_pSceneControl->disconnect(m_pSceneControl,SIGNAL(renderTick()),this,SLOT(renderTick()));
 
 	m_isAttached = false;
 }
+
+
+void AssociatingManager::UpdateMapView()
+{
+	UGSceneEditorWnd* pSceneWnd = m_pSceneControl->GetUGSecneWnd();
+	UGCameraWorld *pCamera = pSceneWnd->m_SceneWindow.GetScene3D()->GetCamera("Camera");
+	UGCameraState state;
+	pCamera->GetLookAt(state);
+	double latitude = state.dLat *RTOD;
+	double longitude = state.dLon*RTOD;
+	double altitude = state.dDistance;
+	
+	if (UGIS0(latitude - preLatitude) && UGIS0(longitude - preLongitude) && UGIS0(altitude - preAltitude))
+	{
+		return;
+	}
+
+	preLatitude = latitude;
+	preLongitude = longitude;
+	preAltitude = altitude;
+	
+	UGPoint2D point(longitude, latitude);
+	QSizeF size = CalculateSizeFromAltitude(altitude);
+	UGRect2D viewBounds(point,UGSize2D(size.width(),size.height()));
+	m_pMapControl->GetUGMapWnd()->SetViewBounds(viewBounds);
+	m_pMapControl->GetUGMapWnd()->SetCenter(point);
+	m_pMapControl->Refresh();
+}
+
+void AssociatingManager::UpdateSceneView()
+{
+	UGRect2D viewBounds=m_pMapControl->GetUGMapWnd()->GetViewBounds();
+	UGPoint2D center = viewBounds.CenterPoint();
+
+	double altitude = CalculateAltitudeFromBounds(QRectF(viewBounds.left,viewBounds.top,viewBounds.Width(),viewBounds.Height()));
+	double longitude = center.x;
+	double latitude = center.y;
+
+	if (UGIS0(latitude - preLatitude) && UGIS0(longitude - preLongitude) && UGIS0(altitude - preAltitude))
+	{
+		return;
+	}
+
+	UGSceneEditorWnd* pSceneWnd = m_pSceneControl->GetUGSecneWnd();
+	UGCameraWorld *pCamera = pSceneWnd->m_SceneWindow.GetScene3D()->GetCamera("Camera");
+	UGCameraState state;
+	pCamera->GetLookAt(state);
+	state.dDistance = altitude;
+	state.dLat = latitude*DTOR;
+	state.dLon = longitude*DTOR;
+	pCamera->SetLookAt(state);
+
+	preLatitude = latitude;
+	preLongitude = longitude;
+	preAltitude = altitude;
+}
+
+void AssociatingManager::renderTick()
+{
+	this->UpdateMapView();
+}
+

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QObject>
 #include <qmath.h>
 #include <QSizeF>
 #include <QRectF>
@@ -7,12 +8,11 @@
 class QtMapControl;
 class QtSceneControl;
 
-static const qreal EarthRadius = 6378137;
-static const qreal RTOD = 57.295779513082320876798154814;
-static const qreal  DTOR  =  0.0174532925199432957692369077;
 
-class AssociatingManager
-{
+
+class AssociatingManager : public QObject
+{	
+	Q_OBJECT
 public:
 	AssociatingManager(QtMapControl* pMapControl,QtSceneControl* pSceneControl);
 	~AssociatingManager(void);
@@ -23,11 +23,21 @@ public:
 
 	void Attach();
 	void UnAttach();
-	bool IsAttached();
+	bool IsAttached();	
+
+	void UpdateSceneView();
+	void UpdateMapView();
+
+	public slots:
+		void renderTick();
+private:
 	
 
-private:
 	QtMapControl* m_pMapControl;
 	QtSceneControl* m_pSceneControl;
 	bool m_isAttached;
+
+	double preLatitude;
+	double preLongitude;
+	double preAltitude;
 };

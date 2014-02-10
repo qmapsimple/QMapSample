@@ -666,9 +666,9 @@ void QtMapControl::Init()
 
 	//这里UGC也把UGMapWnd初始化了，所以不用再初始化UGMapWnd
 	m_mapWnd->Initialize();
-	//m_mapWnd->SetUserAction(UGDrawParamaters::uaPan);
+	m_mapWnd->SetUserAction(UGDrawParamaters::uaPan);
 
-	m_mapWnd->SetUserAction(UGDrawParamaters::uaTrack,UGC::UGEditType::ET_PolyLine);
+	//m_mapWnd->SetUserAction(UGDrawParamaters::uaTrack,UGC::UGEditType::ET_PolyLine);
 
 	m_mapWnd->SetNeedSendEvent(true);
 	m_mapWnd->GetEditToolPack()->SetNeedSendEditEvent(true);

@@ -1,16 +1,18 @@
-#include "PlaneInfoControl.h"
-#include <QtGui/QLabel>
-#include <QtGui/QVBoxLayout>
+#include <QVBoxLayout>
+#include <QMouseEvent>
 
-PlaneInfoControl::PlaneInfoControl( QWidget *parent /*= 0*/, Qt::WFlags flags /*= 0*/ )
-:QWidget(parent,flags)
+#include "PlaneInfoControl.h"
+#include "Toolkit/UGTextCodec.h"
+
+PlaneInfoControl::PlaneInfoControl( QWidget *parent /*= 0*/ )
+:QWidget(parent)
 {
 	this->resize(120,60);
 	QVBoxLayout *verticalLayout = new QVBoxLayout(this);
 	verticalLayout->setContentsMargins(0, 0, 0, 0);
 	label1 = new QLabel(this);
-	QFont font;
-	font.setPointSize(12);
+        QFont font;
+        font.setPointSize(10);
 	font.setBold(true);
 	label1->setMaximumSize(QSize(16777215, 20));
 	label1->setText("航线编号：");
@@ -22,7 +24,7 @@ PlaneInfoControl::PlaneInfoControl( QWidget *parent /*= 0*/, Qt::WFlags flags /*
 	verticalLayout->addWidget(label2);
 	QString str = "出发地：\r\n目的地：";
 	QFont font2;
-	font2.setPointSize(12);
+        font2.setPointSize(9);
 	label2->setText(str);
 	label2->setAlignment(Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop);
 	label2->setFont(font2);
@@ -48,7 +50,18 @@ UGString PlaneInfoControl::GetPlaneID()
 
 void PlaneInfoControl::SetAirport( UGString from,UGString to )
 {
-	QString str = QString("出发地：")+(char*)from.Cstr()+"\r\n目的地："+(char*)to.Cstr();
+        // 使用编码转换工具进行编码转换
+        UGString defaultFrom;
+        UGString defaultTo;
+        UGTextCodec codec(UGString::UTF8,from.m_nCharset);
+        codec.Convert(defaultFrom,from);
+        codec.Convert(defaultTo,to);
+
+
+
+        UGString labelText = UGString("出发地：") + defaultFrom + UGString("\r\n目的地：") + defaultTo;
+
+        QString str = QString::fromLocal8Bit(labelText.Cstr(),labelText.GetLength());;
 	label2->setText(str);
 	m_from = from;
 	m_to = to;

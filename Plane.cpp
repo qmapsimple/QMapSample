@@ -1,7 +1,15 @@
+
+#include <QCursor>
 #include "Plane.h"
+#include "PlaneInfoControl.h"
+
+
 #include "Algorithm/UGOpPointLine.h"
 #include "Algorithm/UGOpLines.h"
 #include "Algorithm/UGOpPoints.h"
+#include "Map/UGMap.h"
+#include "Drawing/UGDrawing.h"
+#include "MapWindow/UGMapWnd.h"
 
 #include <QPoint>
 

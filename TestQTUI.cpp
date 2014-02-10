@@ -5,6 +5,7 @@
 
 #include "QtMapControl.h"
 #include "QtSceneControl.h"
+#include "AssociatingManager.h"
 
 
 TestQTUI::TestQTUI(QWidget *parent, Qt::WFlags flags)
@@ -267,7 +268,10 @@ void TestQTUI::drawPolygon()
 
 void TestQTUI::drawText()
 {
-	
+	AssociatingManager* pManager = new AssociatingManager(this->mapControl,this->map3D);
+
+	pManager->Attach();
+
 }
 
 

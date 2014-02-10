@@ -1,12 +1,12 @@
 #ifndef PLANEINFOCONTROL_H_
 #define PLANEINFOCONTROL_H_
 
-#include <string>
-#include "Geometry/UGGeoLine.h"
-#include <QWidget>
 #include <QLabel>
-#include <QPoint>
-#include <QMouseEvent>
+#include <QWidget>
+
+
+
+#include "Stream/ugdefs.h"
 using namespace UGC;
 /**
  * »æÍ¼¿Ø¼þÀà
@@ -16,7 +16,7 @@ class PlaneInfoControl : public QWidget
 	Q_OBJECT
 
 public:
-	PlaneInfoControl(QWidget *parent = 0, Qt::WFlags flags = 0);
+    PlaneInfoControl(QWidget *parent = 0);
 	~PlaneInfoControl();
 
 
